@@ -5,15 +5,18 @@ class MercadolivreSpider(scrapy.Spider):
     name = "mercadolivre"
     allowed_domains = ["lista.mercadolivre.com.br"]
     start_urls = ["https://lista.mercadolivre.com.br/tenis-corrida-masculino"]
+    page_count = 1
+    max_pages = 10
 
     def parse(self, response):
         products = response.css('div.ui-search-result__content') # section of "inspection" of the page that we can get the data of each product selling
-
-        # Getting prices, old price and the new (with discount) is in the same parse
-        prices = products.css("span.andes-money-amount__fraction::text").getall()
-        cents = products.css("span.andes-money-amount__cents::text").getall()
+       
 
         for product in products:
+            # Getting prices, old price and the new (with discount) is in the same parse
+            prices = products.css("span.andes-money-amount__fraction::text").getall()
+            cents = products.css("span.andes-money-amount__cents::text").getall()
+            
             yield {
                 'brand':product.css("span.ui-search-item__brand-discoverability.ui-search-item__group__element::text").get() ,
                 'name':product.css("h2.ui-search-item__title::text").get(),
@@ -25,5 +28,16 @@ class MercadolivreSpider(scrapy.Spider):
                 'reviews_amount':product.css("span.ui-search-reviews__amount::text").get()
             }
 
-        pass
+
+        ## Gettting data from the "next page"
+        if self.page_count < self.max_pages:
+            next_page = response.css('li.andes-pagination__button.andes-pagination__button--next a::attr(href)').get()
+            
+            if next_page:
+                self.page_count += 1                
+                yield scrapy.Request(url=next_page, callback=self.parse)
+
+        
+
+#        pass
 
